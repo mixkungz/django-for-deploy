@@ -48,7 +48,7 @@ jobs:
           name: Run tests
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker build -t $DOCKER_USER/hello-django:stable
+            docker build -t $DOCKER_USER/hello-django:stable .
             docker push $DOCKER_USER/hello-dajngo:stable
   
   deploy:
