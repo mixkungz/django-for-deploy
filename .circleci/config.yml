@@ -36,21 +36,7 @@ jobs:
             cd hello-django
             export DATABASE_HOST=localhost
             python manage.py test
-  
-  build_docker_image:
-    work_directory: ~/hello-django
-    docker:
-      - image: circleci/python:3.6.2
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Run tests
-          command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker build -t $DOCKER_USER/hello-django:stable .
-            docker push $DOCKER_USER/hello-django:stable
-  
+
   deploy:
     work_directory: ~/hello-django
     docker:
@@ -67,7 +53,7 @@ jobs:
               cd ~/hello-django && 
               git pull &&
               ls &&
-              docker-compose pull &&
+              docker-compose build &&
               docker-compose up -d"
 
 workflows:
@@ -81,9 +67,6 @@ workflows:
       - run_test:
           requires:
             - install_dependencies
-      - build_docker_image:
-          requires:
-            - run_test
       - deploy:
           requires:
-            - build_docker_image
+            - run_test
