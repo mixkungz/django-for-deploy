@@ -1,0 +1,89 @@
+version: 2
+jobs:
+  checkout_code:
+    work_directory: ~/hello-django
+    docker:
+      - image: python:3.7.2
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: .
+          paths: .
+  
+  install_dependencies:
+    work_directory: ~/hello-django
+    docker:
+      - image: python:3.7.2
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Dependencies
+          command: pip install -r requirements.txt
+      
+  run_test:
+    work_directory: ~/hello-django
+    docker:
+      - image: python:3.7.2
+      - image: postgres:11.2-alpine
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests
+          command: |
+            pip install -r requirements.txt
+            cd hello-django
+            export DATABASE_HOST=localhost
+            python manage.py test
+  
+  build_docker_image:
+    work_directory: ~/hello-django
+    docker:
+      - image: circleci/python:3.7.2
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run tests
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker build -t $DOCKER_USER/hello-django:stable
+            docker push $DOCKER_USER/hello-dajngo:stable
+  
+  deploy:
+    work_directory: ~/hello-django
+    docker:
+      - image: circleci/python:3.7.2
+    steps:
+      - attach_workspace:
+          at: .
+      - add_ssh_keys
+      - run:
+          name: Run tests
+          command: |
+            ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+            ssh $SSH_USER@$SSH_HOST "
+              cd ~/hello-django && 
+              git pull &&
+              ls &&
+              docker-compose pull &&
+              docker-compose up -d"
+
+workflows:
+  version: 2
+  django-app-pipeline:
+    jobs:
+      - checkout_code
+      - install_dependencies:
+          requires:
+            - checkout_code
+      - run_test:
+          requires:
+            - install_dependencies
+      - build_docker_image:
+          requires:
+            - run_test
+      - deploy:
+          requires:
+            - build_docker_image
