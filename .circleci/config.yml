@@ -40,7 +40,7 @@ jobs:
   build_docker_image:
     work_directory: ~/hello-django
     docker:
-      - image: circleci/python:3.7.2
+      - image: circleci/python:3.6.2
     steps:
       - attach_workspace:
           at: .
